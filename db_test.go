@@ -46,29 +46,29 @@ func (model *Model) TableName() string {
 	return "model"
 }
 
-func (model *Model) InsertWithArgs() (bool, error) {
+func (model *Model) InsertWithArgs() (bool, int64, error) {
 	return Insert(dbInstance.Conn, model, []string{
 		`id`, `email`, `name`, `address`,
 	}, On{
 		On:        "CONFLICT(id) DO UPDATE SET email=?, name=?, address=?",
 		Arguments: []any{model.Email, model.Name, model.Address},
-	})
+	}, "sqlite3")
 }
 
-func (model *Model) InsertOnConflictDoNothing() (bool, error) {
+func (model *Model) InsertOnConflictDoNothing() (bool, int64, error) {
 	return Insert(dbInstance.Conn, model, []string{
 		`id`, `email`, `name`, `address`,
 	}, On{
 		On: "CONFLICT(id) DO NOTHING",
-	})
+	}, "sqlite3")
 }
 
-func (model *Model) Upsert() (bool, error) {
+func (model *Model) Upsert() (bool, int64, error) {
 	var columns = []string{`id`, `email`, `name`, `address`}
 	return Insert(dbInstance.Conn, model, columns, On{
 		On:            "CONFLICT(id)",
 		UpsertColumns: columns[1:],
-	})
+	}, "sqlite3")
 }
 
 func initDB() {
@@ -103,11 +103,11 @@ func TestDBLite(t *testing.T) {
 			m.Address = "123 db street"
 			m.Address = "123 db street"
 
-			bln, err := m.InsertOnConflictDoNothing()
+			bln, _, err := m.InsertOnConflictDoNothing()
 			g.Assert(bln).IsTrue()
 			g.Assert(err).IsNil()
 
-			bln, err = m.InsertOnConflictDoNothing()
+			bln, _, err = m.InsertOnConflictDoNothing()
 			g.Assert(bln).IsFalse()
 			g.Assert(err).IsNil()
 		})
@@ -125,7 +125,7 @@ func TestDBLite(t *testing.T) {
 			}
 
 			for _, model := range models {
-				bln, err := model.InsertOnConflictDoNothing()
+				bln, _, err := model.InsertOnConflictDoNothing()
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 			}
@@ -152,11 +152,11 @@ func TestDBLite(t *testing.T) {
 			m.Address = "123 db street"
 			m.Address = "123 db street"
 
-			bln, err := m.Upsert()
+			bln, _, err := m.Upsert()
 			g.Assert(bln).IsTrue()
 			g.Assert(err).IsNil()
 
-			bln, err = m.Upsert()
+			bln, _, err = m.Upsert()
 			g.Assert(bln).IsTrue()
 			g.Assert(err).IsNil()
 
@@ -174,14 +174,37 @@ func TestDBLite(t *testing.T) {
 			m.Address = "123 db street"
 			m.Address = "123 db street"
 
-			bln, err := m.InsertWithArgs()
+			bln, _, err := m.InsertWithArgs()
 			g.Assert(bln).IsTrue()
 			g.Assert(err).IsNil()
 
-			bln, err = m.InsertWithArgs()
+			bln, _, err = m.InsertWithArgs()
 			g.Assert(bln).IsTrue()
 			g.Assert(err).IsNil()
 
+		})
+
+		g.It("model delete with sql arg", func() {
+			g.Timeout(1 * time.Hour)
+			initDB()
+			defer deInitDB()
+
+			var m = NewModel(100)
+			m.Email = "email100@db.com"
+			m.Name = "model100"
+			m.Address = "123 db street"
+			m.Address = "123 db street"
+
+			bln, _, err := m.InsertOnConflictDoNothing()
+			g.Assert(bln).IsTrue()
+			g.Assert(err).IsNil()
+
+			w := WhereClause{
+				Where: `name=?`, Arguments: []any{"model100"},
+			}
+			n, err := Delete(dbInstance.Conn, m, w)
+			g.Assert(n).Equal(int64(1))
+			g.Assert(err).IsNil()
 		})
 
 	})

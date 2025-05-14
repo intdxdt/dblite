@@ -6,7 +6,7 @@ import (
 	ref "github.com/intdxdt/goreflect"
 )
 
-func Update[T ITable[T]](conn *sql.DB, model T, updateCols []string, wc WhereClause) (bool, error) {
+func Update[T ITable[T]](conn *sql.DB, model T, updateCols []string, wc WhereClause, dbType string) (bool, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return false, err
@@ -29,7 +29,7 @@ func Update[T ITable[T]](conn *sql.DB, model T, updateCols []string, wc WhereCla
 		}
 	}
 
-	var holders = UpdatePlaceholders(cols)
+	var holders = UpdatePlaceholders(cols, dbType)
 	for _, arg := range wc.Arguments {
 		values = append(values, arg)
 	}

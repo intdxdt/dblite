@@ -65,29 +65,62 @@ func ColumnNames(cols []string) string {
 	return strings.Join(cols, ",")
 }
 
-func ColumnEqualPlaceholders(cols []string) string {
+func ColumnEqualPlaceholders(cols []string, dbType string) string {
 	var columns = make([]string, len(cols))
 	for i, col := range cols {
-		columns[i] = fmt.Sprintf("%s=?", col)
+		switch dbType {
+		case "postgres":
+			columns[i] = fmt.Sprintf("%s = $%d", col, i+1)
+		default:
+			columns[i] = fmt.Sprintf("%s = ?", col)
+		}
 	}
-	return strings.Join(columns, ",")
+	return strings.Join(columns, ", ")
 }
 
-func ColumnEqualExcludedAttributes(cols []string) string {
-	var columns = make([]string, len(cols))
+func ColumnEqualParamAttributes(cols []string, dbType string) string {
+	startIndex := len(cols) + 2
+	updates := make([]string, len(cols))
 	for i, col := range cols {
-		columns[i] = fmt.Sprintf("%s=excluded.%s", col, col)
+		switch dbType {
+		case "postgres":
+			updates[i] = fmt.Sprintf("%s = $%d", col, startIndex+i)
+		default:
+			updates[i] = fmt.Sprintf("%s = ?", col)
+		}
 	}
-	return strings.Join(columns, ",")
+	return strings.Join(updates, ", ")
 }
 
-func ColumnPlaceholders(cols []string) string {
-	return strings.TrimRight(strings.Repeat("?,", len(cols)), ",")
+func ColumnPlaceholders(cols []string, dbType string) string {
+	switch dbType {
+	case "postgres":
+		placeholders := make([]string, len(cols))
+		for i := range cols {
+			placeholders[i] = fmt.Sprintf("$%d", i+1)
+		}
+		return strings.Join(placeholders, ",")
+	default:
+		return strings.TrimRight(strings.Repeat("?,", len(cols)), ",")
+	}
 }
 
-func UpdatePlaceholders(cols []string) string {
-	return strings.Join(MapFn(cols, func(col string) string {
-		return fmt.Sprintf(`%v=?`, col)
+func MapFnWithIndex[T any](in []T, fn func(int, T) string) []string {
+	out := make([]string, len(in))
+	for i, val := range in {
+		out[i] = fn(i, val)
+	}
+	return out
+}
+
+func UpdatePlaceholders(cols []string, dbType string) string {
+	return strings.Join(MapFnWithIndex(cols, func(i int, col string) string {
+		switch dbType {
+		case "postgres":
+			return fmt.Sprintf(`%v=$%d`, col, i+1)
+		default: // defaults to sqlite3
+			return fmt.Sprintf(`%v=?`, col)
+		}
 	}), `,`)
 }
 
