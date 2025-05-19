@@ -2,43 +2,44 @@ package dblite
 
 import (
 	"database/sql"
-	"fmt"
-	"time"
+	"errors"
 )
 
 func Exec(conn *sql.DB, query string, args ...any) (sql.Result, error) {
 	return conn.Exec(query, args...)
 }
 
-func ExecMany(conn *sql.DB, query string, records [][]any) (error, error) {
+// ExecMany return error and rollback error
+func ExecMany(conn *sql.DB, query string, records [][]any) (bool, error) {
 	tx, err := conn.Begin()
 	if err != nil {
-		return err, nil
+		return false, err
 	}
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {
 		var prepError = tx.Rollback() // rollback if prepare fails
-		return err, prepError
+		return false, errors.Join(err, prepError)
 	}
 	defer stmt.Close()
 
+	var rowCount = int64(0)
 	for _, record := range records {
-		_, err = stmt.Exec(record...)
+		res, err := stmt.Exec(record...)
 		if err != nil {
-			var errRollback error
-			for i := 1; i <= 5; i++ {
-				errRollback = tx.Rollback()
-				if errRollback == nil {
-					break
-				} else {
-					errRollback = fmt.Errorf("failed to rollback after %d attempts: %v", i, errRollback)
-				}
-				time.Sleep(time.Second * 2)
-			}
-			return err, errRollback
+			return false, errors.Join(err, tx.Rollback())
 		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return false, errors.Join(err, tx.Rollback())
+		}
+		rowCount = rowCount + n
 	}
 
-	return tx.Commit(), nil // commit all changes at once
+	err = tx.Commit()
+	if err != nil {
+		return false, errors.Join(err, tx.Rollback())
+	}
+
+	return rowCount == int64(len(records)), nil
 }

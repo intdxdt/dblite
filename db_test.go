@@ -3,7 +3,10 @@ package dblite
 import (
 	"fmt"
 	"github.com/franela/goblin"
+	"github.com/joho/godotenv"
+	"log"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -19,9 +22,16 @@ CREATE TABLE IF NOT EXISTS model (
 );
 `
 
-var dbInstance *Database
+func init() {
+	var err = godotenv.Load(".env")
+	if err != nil {
+		log.Fatalln("error loading .env", err)
+	}
+}
 
-type Model struct {
+var testDrivers = []string{"sqlite3", "postgres"}
+
+type TestModel struct {
 	Id      int64  `json:"id"`
 	Email   string `json:"email"`
 	Name    string `json:"name"`
@@ -29,161 +39,100 @@ type Model struct {
 	Active  int    `json:"active"`
 }
 
-func NewModel(id int64) *Model {
-	return &Model{Id: id}
+func generateData(n int) []*TestModel {
+	var models = make([]*TestModel, n)
+
+	for i := 0; i < n; i++ {
+		models[i] = &TestModel{
+			Id:      int64(i + 1),
+			Email:   fmt.Sprintf("user%d@example.com", i),
+			Name:    fmt.Sprintf("User %d", i),
+			Address: fmt.Sprintf("%d db street, gh", i),
+			Active:  i % 2,
+		}
+	}
+	return models
 }
 
-func (model *Model) New() *Model {
+func NewModel(id int64) *TestModel {
+	return &TestModel{Id: id}
+}
+
+func (model *TestModel) New() *TestModel {
 	return NewModel(-1)
 }
 
-func (model *Model) Clone() *Model {
+func (model *TestModel) Clone() *TestModel {
 	var o = *model
 	return &o
 }
 
-func (model *Model) TableName() string {
+func (model *TestModel) TableName() string {
 	return "model"
 }
 
-func (model *Model) InsertWithArgs() (bool, error) {
-	return Insert(dbInstance.Conn, model, []string{
-		`id`, `email`, `name`, `address`,
-	}, On{
-		On:        "CONFLICT(id) DO UPDATE SET email=?, name=?, address=?",
-		Arguments: []any{model.Email, model.Name, model.Address},
-	})
+func initDB(driver string) *Database {
+	switch driver {
+	case "sqlite3":
+		var uri = os.Getenv("SQLITE_URI")
+		var dbDIR = filepath.Dir(uri)
+		var dbPath = fmt.Sprintf("%v/test.db", dbDIR)
+		checkError(os.MkdirAll(dbDIR, 0755))
+
+		db, err := NewDatabase(driver, dbPath)
+		checkError(err)
+
+		_, err = Exec(db.Conn, sqlModel)
+		checkError(err)
+
+		return db
+	case "postgres":
+		var uri = os.Getenv("POSTGRES_URI")
+		var db, err = NewDatabase(driver, uri)
+		checkError(err)
+
+		_, err = Exec(db.Conn, sqlModel)
+		checkError(err)
+
+		return db
+	default:
+		log.Fatalln("untested driver", driver)
+	}
+	return nil
 }
 
-func (model *Model) InsertOnConflictDoNothing() (bool, error) {
-	return Insert(dbInstance.Conn, model, []string{
-		`id`, `email`, `name`, `address`,
-	}, On{
-		On: "CONFLICT(id) DO NOTHING",
-	})
-}
-
-func (model *Model) Upsert() (bool, error) {
-	var columns = []string{`id`, `email`, `name`, `address`}
-	return Insert(dbInstance.Conn, model, columns, On{
-		On:            "CONFLICT(id)",
-		UpsertColumns: columns[1:],
-	})
-}
-
-func initDB() {
-	var dbDIR = "./bin"
-	var dbPath = fmt.Sprintf("%v/test.db", dbDIR)
-	err := os.MkdirAll(dbDIR, 0755)
-	checkError(err)
-	dbInstance, err = NewDatabase(dbPath)
-	checkError(err)
-	_, err = dbInstance.Exec(sqlModel)
-	checkError(err)
-}
-
-func deInitDB() {
-	if dbInstance != nil {
-		dbInstance.Close()
+func deInitDB(db *Database) {
+	if db != nil {
+		db.Close()
 	}
 }
 
-func TestDBLite(t *testing.T) {
-	g := goblin.Goblin(t)
+func checkError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 
-	g.Describe("Tests Model Insert", func() {
-		g.It("model insert", func() {
+func TestDB(t *testing.T) {
+	var g = goblin.Goblin(t)
+	g.Describe("Test Delete", func() {
+
+		g.It("delete: sqlite3, postgres", func() {
 			g.Timeout(1 * time.Hour)
-			initDB()
-			defer deInitDB()
+			for _, driver := range testDrivers {
+				var db = initDB(driver)
 
-			var m = NewModel(1)
-			m.Email = "email@db.com"
-			m.Name = "model"
-			m.Address = "123 db street"
-			m.Address = "123 db street"
-
-			bln, err := m.InsertOnConflictDoNothing()
-			g.Assert(bln).IsTrue()
-			g.Assert(err).IsNil()
-
-			bln, err = m.InsertOnConflictDoNothing()
-			g.Assert(bln).IsFalse()
-			g.Assert(err).IsNil()
-		})
-		g.It("model count", func() {
-			g.Timeout(1 * time.Hour)
-			initDB()
-			defer deInitDB()
-
-			var models = []*Model{
-				{Id: 1, Email: "email1@db.com", Name: "model1", Address: "123 db street"},
-				{Id: 2, Email: "email2@db.com", Name: "model2", Address: "124 db street"},
-				{Id: 3, Email: "email3@db.com", Name: "model1", Address: "125 db street"},
-				{Id: 4, Email: "email4@db.com", Name: "model4", Address: "126 db street"},
-				{Id: 5, Email: "email5@db.com", Name: "model1", Address: "127 db street"},
-			}
-
-			for _, model := range models {
-				bln, err := model.InsertOnConflictDoNothing()
-				g.Assert(bln).IsTrue()
+				var name, err = TableNameFromCreateSql(sqlModel)
+				g.Assert(name).Equal("model")
 				g.Assert(err).IsNil()
+
+				columns, err := ColumnsByExclusion(NewModel(-1), []string{`id`, `active`})
+				g.Assert(columns).Equal([]string{"email", "name", "address"})
+				g.Assert(len(columns)).Equal(3)
+				g.Assert(err).IsNil()
+				deInitDB(db)
 			}
-			num, err := Count(dbInstance.Conn, NewModel(-1), `id`, WhereClause{
-				Where: `name=?`, Arguments: []any{"model1"},
-			})
-			g.Assert(err).IsNil()
-			g.Assert(num).Equal(int64(3))
-			num, err = Count(dbInstance.Conn, NewModel(-1), `id`, WhereClause{
-				Where: `name=?`, Arguments: []any{"model4"},
-			})
-			g.Assert(err).IsNil()
-			g.Assert(num).Equal(int64(1))
-		})
-
-		g.It("model upsert", func() {
-			g.Timeout(1 * time.Hour)
-			initDB()
-			defer deInitDB()
-
-			var m = NewModel(1)
-			m.Email = "email@db.com"
-			m.Name = "model"
-			m.Address = "123 db street"
-			m.Address = "123 db street"
-
-			bln, err := m.Upsert()
-			g.Assert(bln).IsTrue()
-			g.Assert(err).IsNil()
-
-			bln, err = m.Upsert()
-			g.Assert(bln).IsTrue()
-			g.Assert(err).IsNil()
 
 		})
-
-		g.It("model upsert with sql args", func() {
-			g.Timeout(1 * time.Hour)
-			initDB()
-			defer deInitDB()
-
-			var m = NewModel(1)
-
-			m.Email = "email@db.com"
-			m.Name = "model"
-			m.Address = "123 db street"
-			m.Address = "123 db street"
-
-			bln, err := m.InsertWithArgs()
-			g.Assert(bln).IsTrue()
-			g.Assert(err).IsNil()
-
-			bln, err = m.InsertWithArgs()
-			g.Assert(bln).IsTrue()
-			g.Assert(err).IsNil()
-
-		})
-
 	})
-
 }

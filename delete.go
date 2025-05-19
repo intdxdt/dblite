@@ -1,15 +1,14 @@
 package dblite
 
 import (
-	"database/sql"
 	"fmt"
 )
 
-func Delete[T ITable[T]](conn *sql.DB, model T, wc WhereClause) (int64, error) {
+func Delete[T ITable[T]](db *Database, model T, wc WhereClause) (int64, error) {
 	var query = fmt.Sprintf(
 		`DELETE FROM %v WHERE %v;`, model.TableName(), wc.Where)
 
-	var res, err = Exec(conn, query, wc.Arguments...)
+	var res, err = Exec(db.Conn, query, wc.Arguments...)
 	if err != nil {
 		return 0, err
 	}

@@ -1,12 +1,11 @@
 package dblite
 
 import (
-	"database/sql"
 	"fmt"
 	ref "github.com/intdxdt/goreflect"
 )
 
-func Insert[T ITable[T]](conn *sql.DB, model T, insertCols []string, on On) (bool, error) {
+func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On) (bool, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return false, err
@@ -17,7 +16,7 @@ func Insert[T ITable[T]](conn *sql.DB, model T, insertCols []string, on On) (boo
 		return false, err
 	}
 
-	var getColsVals = func(inputCols []string) ([]string, []any) {
+	var getColVals = func(inputCols []string) ([]string, []any) {
 		var cols = make([]string, 0, len(fields))
 		var values = make([]any, 0, len(fields))
 
@@ -33,36 +32,25 @@ func Insert[T ITable[T]](conn *sql.DB, model T, insertCols []string, on On) (boo
 		return cols, values
 	}
 
-	var cols, values = getColsVals(insertCols)
+	var cols, values = getColVals(insertCols)
 
-	var columns = ColumnNames(cols)
-	var holders = ColumnPlaceholders(cols)
+	var columns = db.ColumnNames(cols)
+	var holders = db.ColumnPlaceholders(cols)
 
 	var sqlStatement = fmt.Sprintf(`
-		INSERT INTO %v(%v) 
-		VALUES (%v);`, model.TableName(), columns, holders)
+			INSERT INTO %v(%v) 
+			VALUES (%v);`, model.TableName(), columns, holders)
 
-	if len(on.On) > 0 {
-		var sqlOn string
-		if len(on.UpsertColumns) > 0 { //do an upsert given upsert columns
-			var upsertCols, upsertValues = getColsVals(on.UpsertColumns)
-			var colPlaceholders = ColumnEqualExcludedAttributes(upsertCols)
-			sqlOn = fmt.Sprintf(`%v DO UPDATE SET %v`, on.On, colPlaceholders)
-			values = append(values, upsertValues...)
-		} else if len(on.Arguments) > 0 { //on with arguments - maybe not an upsert
-			sqlOn = on.On
-			values = append(values, on.Arguments...)
-		} else {
-			sqlOn = on.On
-		}
-
+	if on.hasOn() {
+		var onSql, onValues = on.OnClause(db, getColVals)
+		values = append(values, onValues...)
 		sqlStatement = fmt.Sprintf(`
-		INSERT INTO %v(%v) 
-		VALUES (%v)
-		ON %v;`, model.TableName(), columns, holders, sqlOn)
+			INSERT INTO %v(%v) 
+			VALUES (%v)
+			ON %v;`, model.TableName(), columns, holders, onSql)
 	}
 
-	res, err := Exec(conn, sqlStatement, values...)
+	res, err := Exec(db.Conn, sqlStatement, values...)
 	if err != nil {
 		return false, err
 	}
@@ -75,9 +63,9 @@ func Insert[T ITable[T]](conn *sql.DB, model T, insertCols []string, on On) (boo
 	return count == 1, nil
 }
 
-func InsertMany[T ITable[T]](conn *sql.DB, models []T, insertCols []string, on On) (error, error) {
+func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, on On) (bool, error) {
 	if len(models) == 0 {
-		return nil, nil
+		return true, nil
 	}
 
 	var getColumnsValues = func(model T) ([]string, []any, error) {
@@ -107,15 +95,19 @@ func InsertMany[T ITable[T]](conn *sql.DB, models []T, insertCols []string, on O
 	var model = models[0]
 	var cols, _, err = getColumnsValues(model)
 	if err != nil {
-		return err, nil
+		return false, err
 	}
 
-	var columns = ColumnNames(cols)
-	var holders = ColumnPlaceholders(cols)
+	var columns = db.ColumnNames(cols)
+	var holders = db.ColumnPlaceholders(cols)
 
 	var sqlStatement = fmt.Sprintf(`
 		INSERT INTO %v(%v) 
 		VALUES (%v);`, model.TableName(), columns, holders)
+
+	if len(on.UpsertColumns) > 0 {
+		panic("only ON clause wth placeholders and apply to all arguments supported")
+	}
 
 	if len(on.On) > 0 {
 		sqlStatement = fmt.Sprintf(`
@@ -128,7 +120,7 @@ func InsertMany[T ITable[T]](conn *sql.DB, models []T, insertCols []string, on O
 	for _, model = range models {
 		_, values, err := getColumnsValues(model)
 		if err != nil {
-			return err, nil
+			return false, err
 		}
 		if len(on.On) > 0 {
 			for _, v := range on.Arguments {
@@ -138,5 +130,5 @@ func InsertMany[T ITable[T]](conn *sql.DB, models []T, insertCols []string, on O
 		records = append(records, values)
 	}
 
-	return ExecMany(conn, sqlStatement, records)
+	return ExecMany(db.Conn, sqlStatement, records)
 }

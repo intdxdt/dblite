@@ -7,25 +7,25 @@ import (
 	ref "github.com/intdxdt/goreflect"
 )
 
-func Query(conn *sql.DB, query string, args ...any) (*sql.Rows, error) {
-	return conn.Query(query, args...)
+func Query(db *Database, query string, args ...any) (*sql.Rows, error) {
+	return db.Conn.Query(query, args...)
 }
 
-func QueryModel[T ITable[T]](conn *sql.DB, model T, where ...WhereClause) (T, error) {
+func QueryModel[T ITable[T]](db *Database, model T, where ...WhereClause) (T, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return model.New(), err
 	}
-	return QueryModelByColumnNames(conn, model, fields, where...)
+	return QueryModelByColumnNames(db, model, fields, where...)
 }
 
-func QueryModelByColumnNames[T ITable[T]](conn *sql.DB, model T, fieldNames []string, where ...WhereClause) (T, error) {
+func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []string, where ...WhereClause) (T, error) {
 	var tableName = model.TableName()
 	var cols, colRefs, err = ref.FilterFieldReferences(fieldNames, model)
 	if err != nil {
 		return model, err
 	}
-	var fields = ColumnNames(cols)
+	var fields = db.ColumnNames(cols)
 
 	var args = make([]any, 0)
 	var sqlStatement = fmt.Sprintf("SELECT %v FROM %v LIMIT 1;", fields, tableName)
@@ -35,7 +35,7 @@ func QueryModelByColumnNames[T ITable[T]](conn *sql.DB, model T, fieldNames []st
 		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v LIMIT 1;", fields, tableName, wc.Where)
 	}
 
-	rows, err := Query(conn, sqlStatement, args...)
+	rows, err := Query(db, sqlStatement, args...)
 	if err != nil {
 		return model, err
 	}
@@ -55,22 +55,22 @@ func QueryModelByColumnNames[T ITable[T]](conn *sql.DB, model T, fieldNames []st
 	return model, nil
 }
 
-func QueryModels[T ITable[T]](conn *sql.DB, model T, where ...WhereClause) ([]T, error) {
+func QueryModels[T ITable[T]](db *Database, model T, where ...WhereClause) ([]T, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return []T{}, err
 	}
-	return QueriesByColumnNames(conn, model, fields, where...)
+	return QueriesByColumnNames(db, model, fields, where...)
 }
 
-func QueriesByColumnNames[T ITable[T]](conn *sql.DB, model T, fieldNames []string, where ...WhereClause) ([]T, error) {
+func QueriesByColumnNames[T ITable[T]](db *Database, model T, fieldNames []string, where ...WhereClause) ([]T, error) {
 	var results = make([]T, 0)
 	var tableName = model.TableName()
 	var cols, colRefs, err = ref.FilterFieldReferences(fieldNames, model)
 	if err != nil {
 		return nil, err
 	}
-	var fields = ColumnNames(cols)
+	var fields = db.ColumnNames(cols)
 
 	var args = make([]any, 0)
 	var sqlStatement = fmt.Sprintf("SELECT %v FROM %v;", fields, tableName)
@@ -83,7 +83,7 @@ func QueriesByColumnNames[T ITable[T]](conn *sql.DB, model T, fieldNames []strin
 		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v;", fields, tableName, wc.Where)
 	}
 
-	rows, err := Query(conn, sqlStatement, args...)
+	rows, err := Query(db, sqlStatement, args...)
 	if err != nil {
 		return results, err
 	}
