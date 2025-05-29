@@ -2,9 +2,10 @@ package dblite
 
 import (
 	"fmt"
-	"github.com/franela/goblin"
 	"testing"
 	"time"
+
+	"github.com/franela/goblin"
 )
 
 func TestInsert(t *testing.T) {

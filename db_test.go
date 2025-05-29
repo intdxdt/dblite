@@ -2,25 +2,25 @@ package dblite
 
 import (
 	"fmt"
-	"github.com/franela/goblin"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/franela/goblin"
+	"github.com/joho/godotenv"
 )
 
-const sqlModel = `
-DROP TABLE IF EXISTS model;
-CREATE TABLE IF NOT EXISTS model (
-	id            		 INTEGER NOT NULL PRIMARY KEY,
-	email         		 TEXT NOT NULL UNIQUE,
-	name          		 TEXT DEFAULT '',
-	address   			 TEXT DEFAULT '',
-	active        		 INTEGER DEFAULT 1
-);
-`
+var sqlModel = `
+	DROP TABLE IF EXISTS model;
+	CREATE TABLE IF NOT EXISTS model (
+		id            		 INTEGER NOT NULL PRIMARY KEY,
+		email         		 TEXT NOT NULL UNIQUE,
+		name          		 TEXT DEFAULT '',
+		address   			 TEXT DEFAULT '',
+		active        		 INTEGER DEFAULT 1
+	);`
 
 func init() {
 	var err = godotenv.Load(".env")
@@ -84,8 +84,8 @@ func initDB(driver string) *Database {
 
 		_, err = Exec(db.Conn, sqlModel)
 		checkError(err)
-
 		return db
+
 	case "postgres":
 		var uri = os.Getenv("POSTGRES_URI")
 		var db, err = NewDatabase(driver, uri)
@@ -93,7 +93,6 @@ func initDB(driver string) *Database {
 
 		_, err = Exec(db.Conn, sqlModel)
 		checkError(err)
-
 		return db
 	default:
 		log.Fatalln("untested driver", driver)

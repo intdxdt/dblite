@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
+	"strings"
+
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	"strings"
 )
 
 type Database struct {
@@ -23,8 +23,6 @@ func NewDatabase(driver, uri string) (*Database, error) {
 		driver = "sqlite3"
 	case "pgx", "pq", "postgres":
 		driver = "postgres"
-	case "mariadb", "maria", "mysql":
-		driver = "mysql"
 	default:
 		return nil, errors.New("unsupported database driver: " + driver)
 	}
@@ -55,14 +53,7 @@ func (db *Database) ColumnNames(cols []string) string {
 }
 
 func (db *Database) QuoteColumn(col string) string {
-	var quote string
-	switch db.driver {
-	case "mysql":
-		quote = "`"
-	default:
-		quote = `"`
-	}
-	return quote + col + quote
+	return fmt.Sprintf(`"%v"`, col)
 }
 
 func (db *Database) ColumnEqualExcludedAttributes(cols []string) string {
@@ -72,8 +63,6 @@ func (db *Database) ColumnEqualExcludedAttributes(cols []string) string {
 		switch db.driver {
 		case "postgres":
 			columns[i] = fmt.Sprintf("%s = EXCLUDED.%s", col, col)
-		case "mysql":
-			columns[i] = fmt.Sprintf("%s = VALUES(%s)", col, col)
 		default:
 			columns[i] = fmt.Sprintf("%s = excluded.%s", col, col)
 		}

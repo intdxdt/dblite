@@ -1,9 +1,10 @@
 package dblite
 
 import (
-	"github.com/franela/goblin"
 	"testing"
 	"time"
+
+	"github.com/franela/goblin"
 )
 
 func TestCount(t *testing.T) {
@@ -26,9 +27,7 @@ func TestCount(t *testing.T) {
 				for _, model := range models {
 					var bln, err = Insert(db, model, []string{
 						`id`, `email`, `name`, `address`,
-					}, On{
-						On: "CONFLICT(id) DO NOTHING",
-					})
+					}, On{On: "CONFLICT(id) DO NOTHING"})
 					g.Assert(bln).IsTrue()
 					g.Assert(err).IsNil()
 				}
