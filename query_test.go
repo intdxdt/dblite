@@ -45,9 +45,7 @@ func TestQuery(t *testing.T) {
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
-				results, err := QueryModels(db, NewModel(-1), WhereClause{
-					Where: db.SetClause("active"), Arguments: []any{1},
-				})
+				results, err := QueryModels(db, NewModel(-1), WhereClause{Where: `"active"=1`})
 				g.Assert(len(results)).Eql(512)
 				g.Assert(err).IsNil()
 
