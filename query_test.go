@@ -24,7 +24,7 @@ func TestQuery(t *testing.T) {
 				g.Assert(err).IsNil()
 
 				model, err := QueryModel(db, NewModel(-1), WhereClause{
-					Where: db.SetClause("id"), Arguments: []any{73},
+					Where: db.SetParam("id"), Arguments: []any{73},
 				})
 				g.Assert(model.Id).Eql(int64(73))
 				g.Assert(err).IsNil()
@@ -54,13 +54,13 @@ func TestQuery(t *testing.T) {
 				g.Assert(err).IsNil()
 
 				results, err = QueryModels(db, NewModel(-1), WhereClause{
-					Where: db.SetClause("active"), Arguments: []any{2},
+					Where: db.WhereParam("active", "="), Arguments: []any{2},
 				})
 				g.Assert(len(results)).Eql(0)
 				g.Assert(err).IsNil()
 
 				results, err = QueryModels(db, NewModel(-1), WhereClause{
-					Where: db.SetClause("id"), Arguments: []any{1096},
+					Where: db.WhereParam("id", "="), Arguments: []any{1096},
 				})
 				g.Assert(len(results)).Eql(0)
 				g.Assert(err).IsNil()

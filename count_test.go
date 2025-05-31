@@ -33,13 +33,13 @@ func TestCount(t *testing.T) {
 				}
 
 				num, err := Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetClause("name"), Arguments: []any{"model1"},
+					Where: db.SetParam("name"), Arguments: []any{"model1"},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(3))
 
 				num, err = Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetClause("name"), Arguments: []any{"model4"},
+					Where: db.SetParam("name"), Arguments: []any{"model4"},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(1))

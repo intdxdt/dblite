@@ -2,6 +2,7 @@ package dblite
 
 import (
 	"fmt"
+
 	ref "github.com/intdxdt/goreflect"
 )
 
@@ -28,7 +29,7 @@ func Update[T ITable[T]](db *Database, model T, updateCols []string, wc WhereCla
 		}
 	}
 
-	var holders = db.SetClauses(cols)
+	var holders = db.SetParams(cols)
 	for _, arg := range wc.Arguments {
 		values = append(values, arg)
 	}

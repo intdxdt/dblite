@@ -33,14 +33,14 @@ func TestUpdate(t *testing.T) {
 				g.Assert(err).IsNil()
 
 				bln, err = Update(db, model, cols, WhereClause{
-					Where:     db.SetClause("id", len(cols)+1),
+					Where:     db.SetParam("id", len(cols)+1),
 					Arguments: []any{model.Id},
 				})
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
 				object, err := QueryModel(db, model, WhereClause{
-					Where: db.SetClause("id"), Arguments: []any{model.Id},
+					Where: db.SetParam("id"), Arguments: []any{model.Id},
 				})
 				g.Assert(object.Id).Equal(model.Id)
 				g.Assert(object.Email).Equal(email)

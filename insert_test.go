@@ -55,9 +55,10 @@ func TestInsert(t *testing.T) {
 				g.Assert(err).IsNil()
 
 				var columns = []string{`id`, `email`, `name`, `address`, `active`}
-				var setColumns = db.SetClauses([]string{`active`}, len(columns))
+				var setCol = db.SetParam(`active`, len(columns)+1)
+				var onClause = fmt.Sprintf("CONFLICT(id) DO UPDATE SET %v", setCol)
 				bln, err = InsertMany(db, data, columns, On{
-					On:        fmt.Sprintf("CONFLICT(id) DO UPDATE SET %v", setColumns),
+					On:        onClause,
 					Arguments: []any{1},
 				})
 				g.Assert(bln).IsTrue()
@@ -118,7 +119,7 @@ func TestUpsert(t *testing.T) {
 				}
 
 				var columns = []string{`id`, `email`, `name`, `address`}
-				var setColumns = db.SetClauses([]string{`email`, `name`, `address`}, len(columns))
+				var setColumns = db.SetParams([]string{`email`, `name`, `address`}, len(columns))
 				var bln, err = Insert(db, m, columns, On{
 					On:        fmt.Sprintf("CONFLICT(id) DO UPDATE SET %v", setColumns),
 					Arguments: []any{m.Email, m.Name, m.Address},
@@ -128,7 +129,7 @@ func TestUpsert(t *testing.T) {
 				g.Assert(err).IsNil()
 
 				columns = []string{`id`, `email`, `name`, `address`}
-				setColumns = db.SetClauses([]string{`email`, `name`, `address`}, len(columns))
+				setColumns = db.SetParams([]string{`email`, `name`, `address`}, len(columns))
 				bln, err = Insert(db, m, columns, On{
 					On:        fmt.Sprintf("CONFLICT(id) DO UPDATE SET %v", setColumns),
 					Arguments: []any{m.Email, m.Name, m.Address},

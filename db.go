@@ -70,7 +70,22 @@ func (db *Database) ColumnEqualExcludedAttributes(cols []string) string {
 	return strings.Join(columns, ",")
 }
 
-func (db *Database) SetClause(col string, index ...int) string {
+func (db *Database) WhereParam(col string, ops string, index ...int) string {
+	var placeholder string
+	switch db.driver {
+	case "postgres":
+		var idx = 1
+		if len(index) > 0 {
+			idx = index[0]
+		}
+		placeholder = fmt.Sprintf(`%v%v$%d`, db.QuoteColumn(col), ops, idx)
+	default:
+		placeholder = fmt.Sprintf(`%v%v?`, db.QuoteColumn(col), ops)
+	}
+	return placeholder
+}
+
+func (db *Database) SetParam(col string, index ...int) string {
 	var placeholder string
 	switch db.driver {
 	case "postgres":
@@ -85,14 +100,14 @@ func (db *Database) SetClause(col string, index ...int) string {
 	return placeholder
 }
 
-func (db *Database) SetClauses(cols []string, offset ...int) string {
+func (db *Database) SetParams(cols []string, offset ...int) string {
 	var placeholders = make([]string, len(cols))
 	var n = 0
 	if len(offset) > 0 {
 		n = offset[0]
 	}
 	for i, col := range cols {
-		placeholders[i] = db.SetClause(col, n+i+1)
+		placeholders[i] = db.SetParam(col, n+i+1)
 	}
 	return strings.Join(placeholders, `,`)
 }

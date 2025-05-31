@@ -1,9 +1,10 @@
 package dblite
 
 import (
-	"github.com/franela/goblin"
 	"testing"
 	"time"
+
+	"github.com/franela/goblin"
 )
 
 func TestDelete(t *testing.T) {
@@ -22,25 +23,25 @@ func TestDelete(t *testing.T) {
 				g.Assert(err).IsNil()
 
 				num, err := Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetClause("active"), Arguments: []any{1},
+					Where: db.WhereParam("active", "="), Arguments: []any{1},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))
 
 				num, err = Delete(db, NewModel(-1), WhereClause{
-					Where: db.SetClause("active"), Arguments: []any{1},
+					Where: db.WhereParam("active", "="), Arguments: []any{1},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))
 
 				num, err = Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetClause("active"), Arguments: []any{1},
+					Where: db.WhereParam("active", "="), Arguments: []any{1},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(0))
 
 				num, err = Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetClause("active"), Arguments: []any{0},
+					Where: db.WhereParam("active", "="), Arguments: []any{0},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))
