@@ -1,9 +1,10 @@
 package dblite
 
 import (
-	"github.com/franela/goblin"
 	"testing"
 	"time"
+
+	"github.com/franela/goblin"
 )
 
 func TestQuery(t *testing.T) {
@@ -50,9 +51,7 @@ func TestQuery(t *testing.T) {
 				g.Assert(len(results)).Eql(512)
 				g.Assert(err).IsNil()
 
-				results, err = QueryModels(db, NewModel(-1), WhereClause{
-					Where: db.SetClause("active"), Arguments: []any{0},
-				})
+				results, err = QueryModels(db, NewModel(-1), WhereClause{Where: `"active"=0`})
 				g.Assert(len(results)).Eql(512)
 				g.Assert(err).IsNil()
 

@@ -1,9 +1,10 @@
 package dblite
 
 import (
-	"github.com/franela/goblin"
 	"testing"
 	"time"
+
+	"github.com/franela/goblin"
 )
 
 func TestUpdate(t *testing.T) {
@@ -28,18 +29,18 @@ func TestUpdate(t *testing.T) {
 				model.Address = address
 				model.Active = 0
 
-				cols, err := ColumnsByExclusion(NewModel(-1), []string{`id`, `active`})
+				cols, err := ColumnsByExclusion(NewModel(-1), []string{"id", "active"})
 				g.Assert(err).IsNil()
 
 				bln, err = Update(db, model, cols, WhereClause{
-					Where:     db.SetClause(`id`, len(cols)+1),
+					Where:     db.SetClause("id", len(cols)+1),
 					Arguments: []any{model.Id},
 				})
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
 				object, err := QueryModel(db, model, WhereClause{
-					Where: db.SetClause(`id`), Arguments: []any{model.Id},
+					Where: db.SetClause("id"), Arguments: []any{model.Id},
 				})
 				g.Assert(object.Id).Equal(model.Id)
 				g.Assert(object.Email).Equal(email)

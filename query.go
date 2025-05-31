@@ -2,8 +2,8 @@ package dblite
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
+
 	ref "github.com/intdxdt/goreflect"
 )
 
@@ -77,9 +77,6 @@ func QueriesByColumnNames[T ITable[T]](db *Database, model T, fieldNames []strin
 	if len(where) > 0 {
 		var wc = where[0]
 		args = wc.Arguments
-		if len(args) == 0 {
-			return results, errors.New("invalid number arguments in where clause")
-		}
 		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v;", fields, tableName, wc.Where)
 	}
 
