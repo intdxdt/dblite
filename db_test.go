@@ -86,7 +86,7 @@ func initDB(driver string) *Database {
 		checkError(err)
 
 		var model = sqlModel()
-		db.SetAutoIncrementPrimaryKey(&model)
+		model = db.SetAutoIncrementPrimaryKey(model)
 		_, err = Exec(db.Conn, model)
 		checkError(err)
 		return db
@@ -97,7 +97,7 @@ func initDB(driver string) *Database {
 		checkError(err)
 
 		var model = sqlModel()
-		db.SetAutoIncrementPrimaryKey(&model)
+		model = db.SetAutoIncrementPrimaryKey(model)
 		_, err = Exec(db.Conn, model)
 		checkError(err)
 		return db

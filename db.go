@@ -59,7 +59,7 @@ func (db *Database) QuoteColumn(col string) string {
 	return fmt.Sprintf(`"%v"`, col)
 }
 
-func (db *Database) SetAutoIncrementPrimaryKey(sqlStr *string) *Database {
+func (db *Database) SetAutoIncrementPrimaryKey(sqlStr string) string {
 	var pk string
 	switch db.driver {
 	case "postgres":
@@ -70,8 +70,7 @@ func (db *Database) SetAutoIncrementPrimaryKey(sqlStr *string) *Database {
 		pk = "INTEGER NOT NULL PRIMARY KEY"
 	}
 
-	*sqlStr = primaryKeyRegex.ReplaceAllString(*sqlStr, pk)
-	return db
+	return primaryKeyRegex.ReplaceAllString(sqlStr, pk)
 }
 
 func (db *Database) ColumnEqualExcludedAttributes(cols []string) string {
