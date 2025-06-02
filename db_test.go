@@ -12,15 +12,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var sqlModel = `
+func sqlModel() string {
+	return `
 	DROP TABLE IF EXISTS model;
 	CREATE TABLE IF NOT EXISTS model (
-		id            		 INTEGER NOT NULL PRIMARY KEY,
-		email         		 TEXT NOT NULL UNIQUE,
-		name          		 TEXT DEFAULT '',
-		address   			 TEXT DEFAULT '',
-		active        		 INTEGER DEFAULT 1
+		id       {PRIMARY KEY},
+		email    TEXT NOT NULL UNIQUE,
+		name     TEXT DEFAULT '',
+		address  TEXT DEFAULT '',
+		active   INTEGER DEFAULT 1
 	);`
+}
 
 func init() {
 	var err = godotenv.Load(".env")
@@ -72,6 +74,7 @@ func (model *TestModel) TableName() string {
 }
 
 func initDB(driver string) *Database {
+
 	switch driver {
 	case "sqlite3":
 		var uri = os.Getenv("SQLITE_URI")
@@ -82,7 +85,9 @@ func initDB(driver string) *Database {
 		db, err := NewDatabase(driver, dbPath)
 		checkError(err)
 
-		_, err = Exec(db.Conn, sqlModel)
+		var model = sqlModel()
+		db.SetAutoIncrementPrimaryKey(&model)
+		_, err = Exec(db.Conn, model)
 		checkError(err)
 		return db
 
@@ -91,7 +96,9 @@ func initDB(driver string) *Database {
 		var db, err = NewDatabase(driver, uri)
 		checkError(err)
 
-		_, err = Exec(db.Conn, sqlModel)
+		var model = sqlModel()
+		db.SetAutoIncrementPrimaryKey(&model)
+		_, err = Exec(db.Conn, model)
 		checkError(err)
 		return db
 	default:
@@ -121,7 +128,7 @@ func TestDB(t *testing.T) {
 			for _, driver := range testDrivers {
 				var db = initDB(driver)
 
-				var name, err = TableNameFromCreateSql(sqlModel)
+				var name, err = TableNameFromCreateSql(sqlModel())
 				g.Assert(name).Equal("model")
 				g.Assert(err).IsNil()
 

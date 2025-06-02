@@ -18,8 +18,7 @@ func TestQuery(t *testing.T) {
 				var db = initDB(driver)
 
 				var data = generateData(100)
-				var bln, err = InsertMany(db, data, []string{`id`, `email`, `name`, `address`, `active`},
-					On{On: "CONFLICT(id) DO NOTHING"})
+				var bln, err = InsertMany(db, data, []string{`email`, `name`, `address`, `active`}, On{})
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
