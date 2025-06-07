@@ -15,7 +15,6 @@ var primaryKeyRegex = regexp.MustCompile(`(?i)\{PRIMARY KEY}`)
 
 type Database struct {
 	driver string
-	uri    string
 	Conn   *sql.DB
 }
 
@@ -35,7 +34,6 @@ func NewDatabase(driver, uri string) (*Database, error) {
 	}
 	return &Database{
 		driver: driver,
-		uri:    uri,
 		Conn:   conn,
 	}, nil
 }
