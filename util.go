@@ -2,8 +2,9 @@ package dblite
 
 import (
 	"fmt"
-	ref "github.com/intdxdt/goreflect"
 	"regexp"
+
+	ref "github.com/intdxdt/goreflect"
 )
 
 var reCreateTable = regexp.MustCompile(`(?i)CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([^\s(]+)`)
