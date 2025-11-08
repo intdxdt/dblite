@@ -2,6 +2,7 @@ package dblite
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	ref "github.com/intdxdt/goreflect"
@@ -23,7 +24,7 @@ func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []st
 	var tableName = model.TableName()
 	var cols, colRefs, err = ref.FilterFieldReferences(fieldNames, model)
 	if err != nil {
-		return model, err
+		return model.New(), err
 	}
 	var fields = db.ColumnNames(cols)
 
@@ -37,20 +38,26 @@ func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []st
 
 	rows, err := Query(db, sqlStatement, args...)
 	if err != nil {
-		return model, err
+		return model.New(), err
 	}
 	defer rows.Close()
 
+	var scanned = false
 	for rows.Next() {
 		err = rows.Scan(colRefs...)
 		if err != nil {
-			return model, err
+			return model.New(), err
 		}
+		scanned = true
 		break
 	}
 
+	if !scanned {
+		return model.New(), errors.New("record not found")
+	}
+
 	if rows.Err() != nil {
-		return model, rows.Err()
+		return model.New(), rows.Err()
 	}
 	return model, nil
 }

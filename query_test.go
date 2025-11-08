@@ -28,6 +28,12 @@ func TestQuery(t *testing.T) {
 				g.Assert(model.Id).Eql(int64(73))
 				g.Assert(err).IsNil()
 
+				model, err = QueryModel(db, NewModel(0), WhereClause{
+					Where: db.SetParam("id"), Arguments: []any{0},
+				})
+				g.Assert(model.Id).Eql(int64(-1))
+				g.Assert(err).IsNotNil()
+
 				deInitDB(db)
 			}
 
