@@ -8,6 +8,8 @@ import (
 	ref "github.com/intdxdt/goreflect"
 )
 
+var ErrNoRecord = errors.New("record not found")
+
 func Query(db *Database, query string, args ...any) (*sql.Rows, error) {
 	return db.Conn.Query(query, args...)
 }
@@ -53,7 +55,7 @@ func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []st
 	}
 
 	if !scanned {
-		return model.New(), errors.New("record not found")
+		return model.New(), ErrNoRecord
 	}
 
 	if rows.Err() != nil {
