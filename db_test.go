@@ -65,8 +65,7 @@ func (model *TestModel) New() *TestModel {
 }
 
 func (model *TestModel) Clone() *TestModel {
-	var o = *model
-	return &o
+	return new(*model)
 }
 
 func (model *TestModel) TableName() string {
