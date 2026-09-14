@@ -1,6 +1,7 @@
 package dblite
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -12,6 +13,14 @@ var ErrNoRecord = errors.New("record not found")
 
 func Query(db *Database, query string, args ...any) (*sql.Rows, error) {
 	return db.Conn.Query(query, args...)
+}
+
+func QueryRow(conn *sql.DB, query string, args ...any) *sql.Row {
+	return conn.QueryRow(query, args...)
+}
+
+func QueryRowContext(conn *sql.DB, ctx context.Context, query string, args ...any) *sql.Row {
+	return conn.QueryRowContext(ctx, query, args...)
 }
 
 func QueryModel[T ITable[T]](db *Database, model T, where ...WhereClause) (T, error) {

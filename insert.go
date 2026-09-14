@@ -64,6 +64,63 @@ func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On) (boo
 	return count == 1, nil
 }
 
+func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, on On, returnColumn string) (int64, error) {
+	var fields, err = ref.Fields(model)
+	if err != nil {
+		return 0, err
+	}
+
+	fields, colRefs, err := ref.FilterFieldReferences(fields, model)
+	if err != nil {
+		return 0, err
+	}
+
+	var getColVals = func(inputCols []string) ([]string, []any) {
+		var cols = make([]string, 0, len(fields))
+		var values = make([]any, 0, len(fields))
+
+		var dict = KeysToMap(inputCols, true)
+
+		for i, field := range fields {
+			if !(dict[field]) {
+				continue
+			}
+			cols = append(cols, field)
+			values = append(values, colRefs[i])
+		}
+		return cols, values
+	}
+
+	var cols, values = getColVals(insertCols)
+
+	var columns = db.ColumnNames(cols)
+	var holders = db.ColumnPlaceholders(cols)
+
+	var sqlStatement = fmt.Sprintf(`
+		INSERT INTO %v(%v) 
+		VALUES (%v)
+		RETURNING %s;`, model.TableName(), columns, holders, returnColumn)
+
+	if on.hasOn() {
+		var onSql, onValues = on.OnClause(db, getColVals)
+		values = append(values, onValues...)
+		sqlStatement = fmt.Sprintf(`
+			INSERT INTO %v(%v) 
+			VALUES (%v)
+			ON %v
+			RETURNING %s;`, model.TableName(), columns, holders, onSql, returnColumn)
+	}
+
+	var returnedID int64
+
+	err = QueryRow(db.Conn, sqlStatement, values...).Scan(&returnedID)
+	if err != nil {
+		return 0, err
+	}
+
+	return returnedID, nil
+}
+
 func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, on On) (bool, error) {
 	if len(models) == 0 {
 		return true, nil
