@@ -6,7 +6,9 @@ import (
 	ref "github.com/intdxdt/goreflect"
 )
 
-func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On) (bool, error) {
+type FuncColumnsPlaceholdersCallback func(cols string, holders string) (string, string)
+
+func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On, columnsPlaceHoldersCallback ...FuncColumnsPlaceholdersCallback) (bool, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return false, err
@@ -37,6 +39,16 @@ func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On) (boo
 
 	var columns = db.ColumnNames(cols)
 	var holders = db.ColumnPlaceholders(cols)
+
+	var fnColsHoldersCallback = func(cols string, holders string) (string, string) {
+		return cols, holders
+	}
+
+	if len(columnsPlaceHoldersCallback) > 0 {
+		fnColsHoldersCallback = columnsPlaceHoldersCallback[0]
+	}
+
+	columns, holders = fnColsHoldersCallback(columns, holders)
 
 	var sqlStatement = fmt.Sprintf(`
 			INSERT INTO %v(%v) 
@@ -64,7 +76,7 @@ func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On) (boo
 	return count == 1, nil
 }
 
-func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, on On, returnColumn string) (int64, error) {
+func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, on On, returnColumn string, columnsPlaceHoldersCallback ...FuncColumnsPlaceholdersCallback) (int64, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return 0, err
@@ -95,6 +107,16 @@ func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, on
 
 	var columns = db.ColumnNames(cols)
 	var holders = db.ColumnPlaceholders(cols)
+
+	var fnColsHoldersCallback = func(cols string, holders string) (string, string) {
+		return cols, holders
+	}
+
+	if len(columnsPlaceHoldersCallback) > 0 {
+		fnColsHoldersCallback = columnsPlaceHoldersCallback[0]
+	}
+
+	columns, holders = fnColsHoldersCallback(columns, holders)
 
 	var sqlStatement = fmt.Sprintf(`
 		INSERT INTO %v(%v) 
