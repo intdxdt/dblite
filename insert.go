@@ -111,14 +111,14 @@ func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, on
 			RETURNING %s;`, model.TableName(), columns, holders, onSql, returnColumn)
 	}
 
-	var returnedID int64
+	var returnId int64
 
-	err = QueryRow(db.Conn, sqlStatement, values...).Scan(&returnedID)
+	err = QueryRow(db.Conn, sqlStatement, values...).Scan(&returnId)
 	if err != nil {
 		return 0, err
 	}
 
-	return returnedID, nil
+	return returnId, nil
 }
 
 func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, on On) (bool, error) {
