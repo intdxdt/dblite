@@ -18,7 +18,9 @@ func TestUpdate(t *testing.T) {
 
 				var data = generateData(100)
 				var bln, err = InsertMany(db, data, []string{`id`, `email`, `name`, `address`, `active`},
-					On{On: "CONFLICT(id) DO NOTHING"})
+					WithOn(
+						NewOn("CONFLICT(id) DO NOTHING"),
+					))
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
@@ -32,16 +34,16 @@ func TestUpdate(t *testing.T) {
 				cols, err := ColumnsByExclusion(NewModel(-1), []string{"id", "active"})
 				g.Assert(err).IsNil()
 
-				bln, err = Update(db, model, cols, WhereClause{
-					Where:     db.SetParam("id", len(cols)+1),
-					Arguments: []any{model.Id},
+				bln, err = Update(db, model, cols, Where{
+					clause:    db.SetParam("id", len(cols)+1),
+					arguments: []any{model.Id},
 				})
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
-				object, err := QueryModel(db, model, WhereClause{
-					Where: db.SetParam("id"), Arguments: []any{model.Id},
-				})
+				object, err := QueryModel(db, model, WithWhere(NewWhere(
+					db.SetParam("id"), WithWhereArguments([]any{model.Id}),
+				)))
 				g.Assert(object.Id).Equal(model.Id)
 				g.Assert(object.Email).Equal(email)
 				g.Assert(object.Address).Equal(address)

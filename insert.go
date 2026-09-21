@@ -6,9 +6,10 @@ import (
 	ref "github.com/intdxdt/goreflect"
 )
 
-type FuncColumnsPlaceholdersCallback func(cols string, holders string) (string, string)
+type FuncColumnsPlaceholders func(cols string, holders string) (string, string)
 
-func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On, columnsPlaceHoldersCallback ...FuncColumnsPlaceholdersCallback) (bool, error) {
+func Insert[T ITable[T]](db *Database, model T, insertCols []string, options ...QueryOpt) (bool, error) {
+	var opts = NewQueryOption(options...)
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return false, err
@@ -40,22 +41,14 @@ func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On, colu
 	var columns = db.ColumnNames(cols)
 	var holders = db.ColumnPlaceholders(cols)
 
-	var fnColsHoldersCallback = func(cols string, holders string) (string, string) {
-		return cols, holders
-	}
-
-	if len(columnsPlaceHoldersCallback) > 0 {
-		fnColsHoldersCallback = columnsPlaceHoldersCallback[0]
-	}
-
-	columns, holders = fnColsHoldersCallback(columns, holders)
+	columns, holders = opts.funcColumnsPlaceholders(columns, holders)
 
 	var sqlStatement = fmt.Sprintf(`
 			INSERT INTO %v(%v) 
 			VALUES (%v);`, model.TableName(), columns, holders)
 
-	if on.hasOn() {
-		var onSql, onValues = on.OnClause(db, getColVals)
+	if opts.hasOn() {
+		var onSql, onValues = opts.OnClause(db, getColVals)
 		values = append(values, onValues...)
 		sqlStatement = fmt.Sprintf(`
 			INSERT INTO %v(%v) 
@@ -76,7 +69,8 @@ func Insert[T ITable[T]](db *Database, model T, insertCols []string, on On, colu
 	return count == 1, nil
 }
 
-func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, on On, returnColumn string, columnsPlaceHoldersCallback ...FuncColumnsPlaceholdersCallback) (int64, error) {
+func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, returnColumn string, options ...QueryOpt) (int64, error) {
+	var opts = NewQueryOption(options...)
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return 0, err
@@ -108,23 +102,15 @@ func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, on
 	var columns = db.ColumnNames(cols)
 	var holders = db.ColumnPlaceholders(cols)
 
-	var fnColsHoldersCallback = func(cols string, holders string) (string, string) {
-		return cols, holders
-	}
-
-	if len(columnsPlaceHoldersCallback) > 0 {
-		fnColsHoldersCallback = columnsPlaceHoldersCallback[0]
-	}
-
-	columns, holders = fnColsHoldersCallback(columns, holders)
+	columns, holders = opts.funcColumnsPlaceholders(columns, holders)
 
 	var sqlStatement = fmt.Sprintf(`
 		INSERT INTO %v(%v) 
 		VALUES (%v)
 		RETURNING %s;`, model.TableName(), columns, holders, returnColumn)
 
-	if on.hasOn() {
-		var onSql, onValues = on.OnClause(db, getColVals)
+	if opts.hasOn() {
+		var onSql, onValues = opts.OnClause(db, getColVals)
 		values = append(values, onValues...)
 		sqlStatement = fmt.Sprintf(`
 			INSERT INTO %v(%v) 
@@ -143,7 +129,9 @@ func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, on
 	return returnId, nil
 }
 
-func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, on On) (bool, error) {
+func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, options ...QueryOpt) (bool, error) {
+	var opts = NewQueryOption(options...)
+
 	if len(models) == 0 {
 		return true, nil
 	}
@@ -185,15 +173,15 @@ func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, on O
 		INSERT INTO %v(%v) 
 		VALUES (%v);`, model.TableName(), columns, holders)
 
-	if len(on.UpsertColumns) > 0 {
+	if opts.hasOnUpsertColumns() {
 		panic("only ON clause wth placeholders and apply to all arguments supported")
 	}
 
-	if len(on.On) > 0 {
+	if opts.hasOn() {
 		sqlStatement = fmt.Sprintf(`
 		INSERT INTO %v(%v) 
 		VALUES (%v)
-		ON %v;`, model.TableName(), columns, holders, on.On)
+		ON %v;`, model.TableName(), columns, holders, opts.onString())
 	}
 
 	var records = make([][]any, 0, len(models))
@@ -202,8 +190,8 @@ func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, on O
 		if err != nil {
 			return false, err
 		}
-		if len(on.On) > 0 {
-			for _, v := range on.Arguments {
+		if opts.hasOn() {
+			for _, v := range opts.on.arguments {
 				values = append(values, v)
 			}
 		}

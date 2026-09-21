@@ -16,22 +16,23 @@ func Query(db *Database, query string, args ...any) (*sql.Rows, error) {
 }
 
 func QueryRow(conn *sql.DB, query string, args ...any) *sql.Row {
-	return conn.QueryRow(query, args...)
+	return QueryRowContext(conn, context.Background(), query, args...)
 }
 
 func QueryRowContext(conn *sql.DB, ctx context.Context, query string, args ...any) *sql.Row {
 	return conn.QueryRowContext(ctx, query, args...)
 }
 
-func QueryModel[T ITable[T]](db *Database, model T, where ...WhereClause) (T, error) {
+func QueryModel[T ITable[T]](db *Database, model T, options ...QueryOpt) (T, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return model.New(), err
 	}
-	return QueryModelByColumnNames(db, model, fields, where...)
+	return QueryModelByColumnNames(db, model, fields, options...)
 }
 
-func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []string, where ...WhereClause) (T, error) {
+func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []string, options ...QueryOpt) (T, error) {
+	var opts = NewQueryOption(options...)
 	var tableName = model.TableName()
 	var cols, colRefs, err = ref.FilterFieldReferences(fieldNames, model)
 	if err != nil {
@@ -41,10 +42,9 @@ func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []st
 
 	var args = make([]any, 0)
 	var sqlStatement = fmt.Sprintf("SELECT %v FROM %v LIMIT 1;", fields, tableName)
-	if len(where) > 0 {
-		var wc = where[0]
-		args = wc.Arguments
-		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v LIMIT 1;", fields, tableName, wc.Where)
+	if opts.hasWhereClause() {
+		args = opts.whereArguments()
+		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v LIMIT 1;", fields, tableName, opts.whereString())
 	}
 
 	rows, err := Query(db, sqlStatement, args...)
@@ -73,15 +73,16 @@ func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []st
 	return model, nil
 }
 
-func QueryModels[T ITable[T]](db *Database, model T, where ...WhereClause) ([]T, error) {
+func QueryModels[T ITable[T]](db *Database, model T, options ...QueryOpt) ([]T, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return []T{}, err
 	}
-	return QueriesByColumnNames(db, model, fields, where...)
+	return QueriesByColumnNames(db, model, fields, options...)
 }
 
-func QueriesByColumnNames[T ITable[T]](db *Database, model T, fieldNames []string, where ...WhereClause) ([]T, error) {
+func QueriesByColumnNames[T ITable[T]](db *Database, model T, fieldNames []string, options ...QueryOpt) ([]T, error) {
+	var opts = NewQueryOption(options...)
 	var results = make([]T, 0)
 	var tableName = model.TableName()
 	var cols, colRefs, err = ref.FilterFieldReferences(fieldNames, model)
@@ -92,10 +93,9 @@ func QueriesByColumnNames[T ITable[T]](db *Database, model T, fieldNames []strin
 
 	var args = make([]any, 0)
 	var sqlStatement = fmt.Sprintf("SELECT %v FROM %v;", fields, tableName)
-	if len(where) > 0 {
-		var wc = where[0]
-		args = wc.Arguments
-		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v;", fields, tableName, wc.Where)
+	if opts.hasWhereClause() {
+		args = opts.whereArguments()
+		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v;", fields, tableName, opts.whereString())
 	}
 
 	rows, err := Query(db, sqlStatement, args...)

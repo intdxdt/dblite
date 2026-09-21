@@ -4,11 +4,11 @@ import (
 	"fmt"
 )
 
-func Delete[T ITable[T]](db *Database, model T, wc WhereClause) (int64, error) {
+func Delete[T ITable[T]](db *Database, model T, wc Where) (int64, error) {
 	var query = fmt.Sprintf(
-		`DELETE FROM %v WHERE %v;`, model.TableName(), wc.Where)
+		`DELETE FROM %v WHERE %v;`, model.TableName(), wc.clause)
 
-	var res, err = Exec(db.Conn, query, wc.Arguments...)
+	var res, err = Exec(db.Conn, query, wc.arguments...)
 	if err != nil {
 		return 0, err
 	}

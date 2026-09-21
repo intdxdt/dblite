@@ -18,30 +18,32 @@ func TestDelete(t *testing.T) {
 
 				var data = generateData(1024)
 				var bln, err = InsertMany(db, data, []string{`id`, `email`, `name`, `address`, `active`},
-					On{On: "CONFLICT(id) DO NOTHING"})
+					WithOn(
+						NewOn("CONFLICT(id) DO NOTHING"),
+					))
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
-				num, err := Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.WhereParam("active", "="), Arguments: []any{1},
+				num, err := Count(db, NewModel(-1), `id`, Where{
+					clause: db.WhereParam("active", "="), arguments: []any{1},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))
 
-				num, err = Delete(db, NewModel(-1), WhereClause{
-					Where: db.WhereParam("active", "="), Arguments: []any{1},
+				num, err = Delete(db, NewModel(-1), Where{
+					clause: db.WhereParam("active", "="), arguments: []any{1},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))
 
-				num, err = Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.WhereParam("active", "="), Arguments: []any{1},
+				num, err = Count(db, NewModel(-1), `id`, Where{
+					clause: db.WhereParam("active", "="), arguments: []any{1},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(0))
 
-				num, err = Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.WhereParam("active", "="), Arguments: []any{0},
+				num, err = Count(db, NewModel(-1), `id`, Where{
+					clause: db.WhereParam("active", "="), arguments: []any{0},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))

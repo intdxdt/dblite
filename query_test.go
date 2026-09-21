@@ -18,25 +18,25 @@ func TestQuery(t *testing.T) {
 				var db = initDB(driver)
 
 				var data = generateData(100)
-				var bln, err = InsertMany(db, data, []string{`email`, `name`, `address`, `active`}, On{})
+				var bln, err = InsertMany(db, data, []string{`email`, `name`, `address`, `active`})
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
-				model, err := QueryModel(db, NewModel(-1), WhereClause{
-					Where: db.SetParam("id"), Arguments: []any{73},
-				})
+				model, err := QueryModel(db, NewModel(-1), WithWhere(NewWhere(
+					db.SetParam("id"), WithWhereArguments([]any{73}),
+				)))
 				g.Assert(model.Id).Eql(int64(73))
 				g.Assert(err).IsNil()
 
-				model, err = QueryModel(db, NewModel(0), WhereClause{
-					Where: db.SetParam("id"), Arguments: []any{0},
-				})
+				model, err = QueryModel(db, NewModel(0), WithWhere(NewWhere(
+					db.SetParam("id"), WithWhereArguments([]any{0}),
+				)))
 				g.Assert(model.Id).Eql(int64(-1))
 				g.Assert(err).IsNotNil()
 
-				model, err = QueryModel(db, NewModel(0), WhereClause{
-					Where: db.SetParam("id"), Arguments: []any{1000},
-				})
+				model, err = QueryModel(db, NewModel(0), WithWhere(NewWhere(
+					db.SetParam("id"), WithWhereArguments([]any{1000}),
+				)))
 				g.Assert(model.Id).Eql(int64(-1))
 				g.Assert(err).IsNotNil()
 
@@ -52,27 +52,29 @@ func TestQuery(t *testing.T) {
 
 				var data = generateData(1024)
 				var bln, err = InsertMany(db, data, []string{`id`, `email`, `name`, `address`, `active`},
-					On{On: "CONFLICT(id) DO NOTHING"})
+					WithOn(
+						NewOn("CONFLICT(id) DO NOTHING"),
+					))
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
-				results, err := QueryModels(db, NewModel(-1), WhereClause{Where: `"active"=1`})
+				results, err := QueryModels(db, NewModel(-1), WithWhere(NewWhere(`"active"=1`)))
 				g.Assert(len(results)).Eql(512)
 				g.Assert(err).IsNil()
 
-				results, err = QueryModels(db, NewModel(-1), WhereClause{Where: `"active"=0`})
+				results, err = QueryModels(db, NewModel(-1), WithWhere(NewWhere(`"active"=0`)))
 				g.Assert(len(results)).Eql(512)
 				g.Assert(err).IsNil()
 
-				results, err = QueryModels(db, NewModel(-1), WhereClause{
-					Where: db.WhereParam("active", "="), Arguments: []any{2},
-				})
+				results, err = QueryModels(db, NewModel(-1), WithWhere(NewWhere(
+					db.WhereParam("active", "="), WithWhereArguments([]any{2}),
+				)))
 				g.Assert(len(results)).Eql(0)
 				g.Assert(err).IsNil()
 
-				results, err = QueryModels(db, NewModel(-1), WhereClause{
-					Where: db.WhereParam("id", "="), Arguments: []any{1096},
-				})
+				results, err = QueryModels(db, NewModel(-1), WithWhere(NewWhere(
+					db.WhereParam("id", "="), WithWhereArguments([]any{1096}),
+				)))
 				g.Assert(len(results)).Eql(0)
 				g.Assert(err).IsNil()
 

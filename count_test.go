@@ -25,20 +25,21 @@ func TestCount(t *testing.T) {
 				}
 
 				for _, model := range models {
-					var bln, err = Insert(db, model, []string{
-						`id`, `email`, `name`, `address`}, On{On: "CONFLICT(id) DO NOTHING"})
+					var bln, err = Insert(db, model, []string{`id`, `email`, `name`, `address`}, WithOn(
+						NewOn("CONFLICT(id) DO NOTHING"),
+					))
 					g.Assert(bln).IsTrue()
 					g.Assert(err).IsNil()
 				}
 
-				num, err := Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetParam("name"), Arguments: []any{"model1"},
+				num, err := Count(db, NewModel(-1), `id`, Where{
+					clause: db.SetParam("name"), arguments: []any{"model1"},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(3))
 
-				num, err = Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetParam("name"), Arguments: []any{"model4"},
+				num, err = Count(db, NewModel(-1), `id`, Where{
+					clause: db.SetParam("name"), arguments: []any{"model4"},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(1))
@@ -61,21 +62,23 @@ func TestCount(t *testing.T) {
 				}
 				var _id int64 = 0
 				for _, model := range models {
-					var insertedId, err = InsertReturning(db, model, []string{
-						`id`, `email`, `name`, `address`}, On{On: "CONFLICT(id) DO NOTHING"}, "id")
+					var insertedId, err = InsertReturning(db, model, []string{`id`, `email`, `name`, `address`}, "id",
+						WithOn(
+							NewOn("CONFLICT(id) DO NOTHING"),
+						))
 					_id += 1
 					g.Assert(insertedId == _id).IsTrue()
 					g.Assert(err).IsNil()
 				}
 
-				num, err := Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetParam("name"), Arguments: []any{"model1"},
+				num, err := Count(db, NewModel(-1), `id`, Where{
+					clause: db.SetParam("name"), arguments: []any{"model1"},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(3))
 
-				num, err = Count(db, NewModel(-1), `id`, WhereClause{
-					Where: db.SetParam("name"), Arguments: []any{"model4"},
+				num, err = Count(db, NewModel(-1), `id`, Where{
+					clause: db.SetParam("name"), arguments: []any{"model4"},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(1))
