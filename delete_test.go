@@ -30,9 +30,9 @@ func TestDelete(t *testing.T) {
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))
 
-				num, err = Delete(db, NewModel(-1), Where{
-					clause: db.WhereParam("active", "="), arguments: []any{1},
-				})
+				num, err = Delete(db, NewModel(-1), NewWhere(
+					db.WhereParam("active", "="), WithWhereArguments([]any{1}),
+				))
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))
 
