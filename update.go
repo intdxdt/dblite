@@ -6,7 +6,7 @@ import (
 	ref "github.com/intdxdt/goreflect"
 )
 
-func Update[T ITable[T]](db *Database, model T, updateCols []string, wc Where) (bool, error) {
+func Update[T ITable[T]](db *Database, model T, updateCols []string, wc *Where) (bool, error) {
 	var fields, err = ref.Fields(model)
 	if err != nil {
 		return false, err
@@ -30,16 +30,15 @@ func Update[T ITable[T]](db *Database, model T, updateCols []string, wc Where) (
 	}
 
 	var holders = db.SetParams(cols)
-	for _, arg := range wc.arguments {
+	for _, arg := range wc.args {
 		values = append(values, arg)
 	}
 
 	var query = fmt.Sprintf(
-		`UPDATE %v SET %v WHERE %v;`,
-		model.TableName(), holders, wc.clause)
+		`UPDATE %v SET %v WHERE %v;`, model.TableName(), holders, wc.clause,
+	)
 
 	res, err := Exec(db.Conn, query, values...)
-
 	if err != nil {
 		return false, err
 	}

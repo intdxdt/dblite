@@ -7,9 +7,9 @@ import (
 type FuncGetColumnValues func(inputCols []string) ([]string, []any)
 
 type On struct {
-	clause        string
-	upsertColumns []string
-	arguments     []any
+	clause string
+	cols   []string
+	args   []any
 }
 
 type OnOpts func(*On)
@@ -24,13 +24,13 @@ func NewOn(onString string, opts ...OnOpts) *On {
 
 func WithOnColumns(cols []string) OnOpts {
 	return func(o *On) {
-		o.upsertColumns = cols
+		o.cols = cols
 	}
 }
 
 func WithOnArguments(args []any) OnOpts {
 	return func(o *On) {
-		o.arguments = args
+		o.args = args
 	}
 }
 
@@ -38,24 +38,24 @@ func (on *On) hasOn() bool {
 	return len(on.clause) > 0
 }
 
-func (on *On) hasUpsertColumns() bool {
-	return len(on.upsertColumns) > 0
+func (on *On) hasColumns() bool {
+	return len(on.cols) > 0
 }
 
 func (on *On) hasArguments() bool {
-	return len(on.arguments) > 0
+	return len(on.args) > 0
 }
 
 func (on *On) OnClause(db *Database, getColumnValues FuncGetColumnValues) (string, []any) {
 	var onSql string
-	var values = make([]any, 0, len(on.arguments))
-	if len(on.upsertColumns) > 0 { //do an upsert given upsert columns
-		var upsertCols, _ = getColumnValues(on.upsertColumns)
+	var values = make([]any, 0, len(on.args))
+	if len(on.cols) > 0 { //do an upsert given upsert columns
+		var upsertCols, _ = getColumnValues(on.cols)
 		var colPlaceholders = db.ColumnEqualExcludedAttributes(upsertCols)
 		onSql = fmt.Sprintf(`%v DO UPDATE SET %v`, on.clause, colPlaceholders)
-	} else if len(on.arguments) > 0 { //on with arguments - maybe not an upsert
+	} else if len(on.args) > 0 { //on with arguments - maybe not an upsert
 		onSql = on.clause
-		values = append(values, on.arguments...)
+		values = append(values, on.args...)
 	} else {
 		onSql = on.clause
 	}
@@ -63,8 +63,8 @@ func (on *On) OnClause(db *Database, getColumnValues FuncGetColumnValues) (strin
 }
 
 type Where struct {
-	clause    string
-	arguments []any
+	clause string
+	args   []any
 }
 
 type WhereOpts func(*Where)
@@ -79,6 +79,6 @@ func NewWhere(clause string, opts ...WhereOpts) *Where {
 
 func WithWhereArguments(args []any) WhereOpts {
 	return func(o *Where) {
-		o.arguments = args
+		o.args = args
 	}
 }

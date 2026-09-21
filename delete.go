@@ -7,7 +7,7 @@ import (
 func Delete[T ITable[T]](db *Database, model T, wc *Where) (int64, error) {
 	var query = fmt.Sprintf(`DELETE FROM %v WHERE %v;`, model.TableName(), wc.clause)
 
-	var res, err = Exec(db.Conn, query, wc.arguments...)
+	var res, err = Exec(db.Conn, query, wc.args...)
 	if err != nil {
 		return 0, err
 	}

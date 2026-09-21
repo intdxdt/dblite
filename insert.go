@@ -191,7 +191,7 @@ func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, opti
 			return false, err
 		}
 		if opts.hasOn() {
-			for _, v := range opts.on.arguments {
+			for _, v := range opts.on.args {
 				values = append(values, v)
 			}
 		}

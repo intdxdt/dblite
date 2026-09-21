@@ -46,7 +46,7 @@ func (opt *QueryOption) whereString() string {
 }
 
 func (opt *QueryOption) whereArguments() []any {
-	return opt.where.arguments
+	return opt.where.args
 }
 
 func (opt *QueryOption) hasOn() bool {
@@ -58,7 +58,7 @@ func (opt *QueryOption) onString() string {
 }
 
 func (opt *QueryOption) hasOnUpsertColumns() bool {
-	return opt.hasOn() && opt.on.hasUpsertColumns()
+	return opt.hasOn() && opt.on.hasColumns()
 }
 
 func (opt *QueryOption) hasOnArguments() bool {
