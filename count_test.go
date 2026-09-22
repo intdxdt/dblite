@@ -32,13 +32,13 @@ func TestCount(t *testing.T) {
 					g.Assert(err).IsNil()
 				}
 
-				num, err := Count(db, NewModel(-1), `id`, Where{
+				num, err := Count(db, NewModel(-1), `id`, &Where{
 					clause: db.SetParam("name"), args: []any{"model1"},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(3))
 
-				num, err = Count(db, NewModel(-1), `id`, Where{
+				num, err = Count(db, NewModel(-1), `id`, &Where{
 					clause: db.SetParam("name"), args: []any{"model4"},
 				})
 				g.Assert(err).IsNil()
@@ -71,15 +71,16 @@ func TestCount(t *testing.T) {
 					g.Assert(err).IsNil()
 				}
 
-				num, err := Count(db, NewModel(-1), `id`, Where{
+				num, err := Count(db, NewModel(-1), `id`, &Where{
 					clause: db.SetParam("name"), args: []any{"model1"},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(3))
 
-				num, err = Count(db, NewModel(-1), `id`, Where{
-					clause: db.SetParam("name"), args: []any{"model4"},
-				})
+				num, err = Count(db, NewModel(-1), `id`, NewWhere(
+					db.SetParam("name"),
+					WithWhereArguments([]any{"model4"}),
+				))
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(1))
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func Count[T ITable[T]](db *Database, model T, refCol string, wc Where) (int64, error) {
+func Count[T ITable[T]](db *Database, model T, refCol string, wc *Where) (int64, error) {
 	var count int64
 	var query = fmt.Sprintf(`SELECT COUNT(%v) FROM %v WHERE %v;`, refCol, model.TableName(), wc.clause)
 	var rows, err = Query(db, query, wc.args...)

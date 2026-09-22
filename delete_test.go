@@ -24,7 +24,7 @@ func TestDelete(t *testing.T) {
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 
-				num, err := Count(db, NewModel(-1), `id`, Where{
+				num, err := Count(db, NewModel(-1), `id`, &Where{
 					clause: db.WhereParam("active", "="), args: []any{1},
 				})
 				g.Assert(err).IsNil()
@@ -36,13 +36,13 @@ func TestDelete(t *testing.T) {
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(512))
 
-				num, err = Count(db, NewModel(-1), `id`, Where{
+				num, err = Count(db, NewModel(-1), `id`, &Where{
 					clause: db.WhereParam("active", "="), args: []any{1},
 				})
 				g.Assert(err).IsNil()
 				g.Assert(num).Equal(int64(0))
 
-				num, err = Count(db, NewModel(-1), `id`, Where{
+				num, err = Count(db, NewModel(-1), `id`, &Where{
 					clause: db.WhereParam("active", "="), args: []any{0},
 				})
 				g.Assert(err).IsNil()
