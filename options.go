@@ -19,24 +19,6 @@ func NewQueryOption(opts ...QueryOpt) *QueryOption {
 	return opt
 }
 
-func WithOn(on *On) QueryOpt {
-	return func(o *QueryOption) {
-		o.on = on
-	}
-}
-
-func WithWhere(where *Where) QueryOpt {
-	return func(o *QueryOption) {
-		o.where = where
-	}
-}
-
-func WithFuncColumnsPlaceholders(fn FuncColumnsPlaceholders) QueryOpt {
-	return func(o *QueryOption) {
-		o.funcColumnsPlaceholders = fn
-	}
-}
-
 func (opt *QueryOption) hasWhereClause() bool {
 	return opt.where != nil
 }
@@ -67,4 +49,22 @@ func (opt *QueryOption) hasOnArguments() bool {
 
 func (opt *QueryOption) OnClause(db *Database, getColumnValues FuncGetColumnValues) (string, []any) {
 	return opt.on.OnClause(db, getColumnValues)
+}
+
+func WithOn(on *On) QueryOpt {
+	return func(o *QueryOption) {
+		o.on = on
+	}
+}
+
+func WithWhere(where *Where) QueryOpt {
+	return func(o *QueryOption) {
+		o.where = where
+	}
+}
+
+func WithFuncColumnsPlaceholders(fn FuncColumnsPlaceholders) QueryOpt {
+	return func(o *QueryOption) {
+		o.funcColumnsPlaceholders = fn
+	}
 }
