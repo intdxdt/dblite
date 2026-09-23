@@ -40,7 +40,7 @@ func Insert[T ITable[T]](db *Database, model T, insertCols []string, options ...
 
 	var columns = db.ColumnNames(cols)
 	var holders = db.ColumnPlaceholders(cols)
-
+	//:> callback - can modify cols and holders
 	columns, holders = opts.funcColumnsPlaceholders(columns, holders)
 
 	var sqlStatement = fmt.Sprintf(`
@@ -101,7 +101,7 @@ func InsertReturning[T ITable[T]](db *Database, model T, insertCols []string, re
 
 	var columns = db.ColumnNames(cols)
 	var holders = db.ColumnPlaceholders(cols)
-
+	//:> callback - can modify cols and holders
 	columns, holders = opts.funcColumnsPlaceholders(columns, holders)
 
 	var sqlStatement = fmt.Sprintf(`
@@ -168,6 +168,8 @@ func InsertMany[T ITable[T]](db *Database, models []T, insertCols []string, opti
 
 	var columns = db.ColumnNames(cols)
 	var holders = db.ColumnPlaceholders(cols)
+	//:> callback - can modify cols and holders
+	columns, holders = opts.funcColumnsPlaceholders(columns, holders)
 
 	var sqlStatement = fmt.Sprintf(`
 		INSERT INTO %v(%v) 

@@ -34,9 +34,9 @@ func TestUpdate(t *testing.T) {
 				cols, err := ColumnsByExclusion(NewModel(-1), []string{"id", "active"})
 				g.Assert(err).IsNil()
 
-				bln, err = Update(db, model, cols, NewWhere(
+				bln, err = Update(db, model, cols, WithWhere(NewWhere(
 					db.SetParam("id", len(cols)+1), WithWhereArguments([]any{model.Id}),
-				))
+				)))
 				g.Assert(bln).IsTrue()
 				g.Assert(err).IsNil()
 

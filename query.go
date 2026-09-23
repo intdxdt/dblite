@@ -38,13 +38,16 @@ func QueryModelByColumnNames[T ITable[T]](db *Database, model T, fieldNames []st
 	if err != nil {
 		return model.New(), err
 	}
-	var fields = db.ColumnNames(cols)
+
+	var columns = db.ColumnNames(cols)
+	//:> callback - can modify cols only
+	columns, _ = opts.funcColumnsPlaceholders(columns, "")
 
 	var args = make([]any, 0)
-	var sqlStatement = fmt.Sprintf("SELECT %v FROM %v LIMIT 1;", fields, tableName)
+	var sqlStatement = fmt.Sprintf("SELECT %v FROM %v LIMIT 1;", columns, tableName)
 	if opts.hasWhereClause() {
 		args = opts.whereArguments()
-		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v LIMIT 1;", fields, tableName, opts.whereString())
+		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v LIMIT 1;", columns, tableName, opts.whereString())
 	}
 
 	rows, err := Query(db, sqlStatement, args...)
@@ -89,13 +92,16 @@ func QueriesByColumnNames[T ITable[T]](db *Database, model T, fieldNames []strin
 	if err != nil {
 		return nil, err
 	}
-	var fields = db.ColumnNames(cols)
+
+	var columns = db.ColumnNames(cols)
+	//:> callback - can modify cols only
+	columns, _ = opts.funcColumnsPlaceholders(columns, "")
 
 	var args = make([]any, 0)
-	var sqlStatement = fmt.Sprintf("SELECT %v FROM %v;", fields, tableName)
+	var sqlStatement = fmt.Sprintf("SELECT %v FROM %v;", columns, tableName)
 	if opts.hasWhereClause() {
 		args = opts.whereArguments()
-		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v;", fields, tableName, opts.whereString())
+		sqlStatement = fmt.Sprintf("SELECT %v FROM %v WHERE %v;", columns, tableName, opts.whereString())
 	}
 
 	rows, err := Query(db, sqlStatement, args...)
