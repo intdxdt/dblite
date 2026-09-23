@@ -12,7 +12,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func sqlModel() string {
+func sqlModelTableDefinition() string {
 	return `
 	DROP TABLE IF EXISTS model;
 	CREATE TABLE IF NOT EXISTS model (
@@ -84,9 +84,9 @@ func initDB(driver string) *Database {
 		db, err := NewDatabase(driver, dbPath)
 		checkError(err)
 
-		var model = sqlModel()
-		model = db.SetAutoIncrementPrimaryKey(model)
-		_, err = Exec(db.Conn, model)
+		var defSql = sqlModelTableDefinition()
+		defSql = db.SetAutoIncrementPrimaryKey(defSql)
+		_, err = Exec(db.Conn, defSql)
 		checkError(err)
 		return db
 
@@ -95,9 +95,9 @@ func initDB(driver string) *Database {
 		var db, err = NewDatabase(driver, uri)
 		checkError(err)
 
-		var model = sqlModel()
-		model = db.SetAutoIncrementPrimaryKey(model)
-		_, err = Exec(db.Conn, model)
+		var sqlDefn = sqlModelTableDefinition()
+		sqlDefn = db.SetAutoIncrementPrimaryKey(sqlDefn)
+		_, err = Exec(db.Conn, sqlDefn)
 		checkError(err)
 		return db
 	default:
@@ -127,7 +127,7 @@ func TestDB(t *testing.T) {
 			for _, driver := range testDrivers {
 				var db = initDB(driver)
 
-				var name, err = TableNameFromCreateSql(sqlModel())
+				var name, err = TableNameFromCreateSql(sqlModelTableDefinition())
 				g.Assert(name).Equal("model")
 				g.Assert(err).IsNil()
 
